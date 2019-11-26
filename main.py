@@ -7,6 +7,10 @@ from matplotlib import pyplot as plt
 
 pm_notes = {'C4': 262, 'Eb': 311, 'F': 349, 'G': 391, 'Bb': 466}
 
+#eventually have a dict of different scales to reactivley draw on display
+#scales_dict[pm_notes] = {'C4': 262, 'Eb': 311, 'F': 349, 'G': 391, 'Bb': 466}
+
+
 def generate_note(frequency):
     n_samples = 44100
     sample_rate = 44100
@@ -26,7 +30,9 @@ def generate_note(frequency):
     return samples.tostring()
 
 def write_wave(file_name, data):
-    file = wave.open(file_name, 'wb')
+    if os.path.isdir(os.path.join('scales')) == False:
+        os.mkdir('scales')
+    file = wave.open(os.path.join('scales',file_name), 'wb')
     #WAV file parameters
     n_channels = 1
     sample_width = 2
@@ -48,10 +54,19 @@ class NotePlayer:
     def add_notes(self, file_name):
         self.notes[file_name] = pygame.mixer.Sound(file_name)
 
+    def quit_player(self):
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_q:
+                    return False
+        return True
+
     def play_sequence(self, sequence, beat=1):
         sequence = [int(x)%len(self.notes.values()) for x in sequence]
         i = 0
-        while True:
+        player = True
+        while player:
+            player = self.quit_player()
             if i >= len(sequence):
                 i = 0
             index = sequence[i]
@@ -73,7 +88,7 @@ class NoteChoices:
     #draw a column of buttons
     def draw_buttons(self, input_location_y, input_height):
         for i in range(5):
-            y = int(input_location_y + input_height*(i+1)/6)
+            y = int(input_location_y + input_height*(5-i)/6)
             self.notes[(self.x,y)] = i
             pygame.draw.circle(self.screen, self.start_color, (self.x, y), self.button_r)
 
@@ -105,10 +120,11 @@ class Display(NoteChoices, NotePlayer):
     def populate_notes(self):
         for name, frequency in list(pm_notes.items()):
             file_name = name+'.wav'
+            print(file_name)
             if not os.path.exists(file_name):
-                data = generate_note(frequency)
+                data = generate_note(frequency) #add options to modify the frequency and other params
                 write_wave(file_name, data)
-            self.note_player.add_notes(file_name)
+            self.note_player.add_notes(os.path.join('scales',file_name))
 
     def note_button_generator(self, x, y, color=(255,0,0)):
         pygame.draw.circle(self.screen, color, (x, y), (self.button_r))
@@ -141,6 +157,13 @@ class Display(NoteChoices, NotePlayer):
         print('hello')
         self.note_player.play_sequence(self.sequence)
 
+    def display_directions(self):
+        pygame.font.init()
+        my_font = pygame.font.SysFont('Comic Sans MS', 20)
+        play = my_font.render('Press \'p\' to play tone', False, (0,0,0))
+        quit = my_font.render('Press \'q\' to stop playing tone', False, (0,0,0)) 
+        self.screen.blit(play, (self.width//2, self.height*3//4))
+        self.screen.blit(quit, (self.width//2, 30+self.height*3//4))
 
     def display_screen(self):
         self.populate_notes()
@@ -148,6 +171,7 @@ class Display(NoteChoices, NotePlayer):
         pygame.display.set_caption('Josh\'s Midi Maker')
         self.screen.fill(self.background)
         self.input_box()
+        self.display_directions()
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -156,31 +180,13 @@ class Display(NoteChoices, NotePlayer):
                     mouse_location = pygame.mouse.get_pos()
                     self.detect_select(mouse_location[0], mouse_location[1])
                 if event.type == pygame.KEYDOWN:
-                    self.play_sequence()
+                    if event.key == pygame.K_p:
+                        self.play_sequence()
             pygame.display.update()
 
 
 def main():
-    '''
-    parser = argparse.ArgumentParser(description='Generating sounds with Karplus String Algorythm')
-    parser.add_argument('--play', action='store_true', required=False)
-    arguments = parser.parse_args()
-
-    '''
-
-    #user input sequence, will be changed later for gui input
-
-    print('creating notes')
     Display().display_screen()
-
-    if arguments.play:
-        while True:
-            try:
-                note_player.play_sequence(sequence)
-            except KeyboardInterrupt:
-                exit()
-
-
 
 if __name__ == '__main__':
     main()
