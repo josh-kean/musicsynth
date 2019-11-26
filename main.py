@@ -159,16 +159,18 @@ class Display(NoteChoices, NotePlayer):
 
     def display_directions(self):
         pygame.font.init()
-        my_font = pygame.font.SysFont('Comic Sans MS', 20)
+        my_font = pygame.font.SysFont('Comic Sans MS', 40)
+        instruct = my_font.render('Select circles to choose note at that beat', False, (0,0,0))
         play = my_font.render('Press \'p\' to play tone', False, (0,0,0))
         quit = my_font.render('Press \'q\' to stop playing tone', False, (0,0,0)) 
-        self.screen.blit(play, (self.width//2, self.height*3//4))
-        self.screen.blit(quit, (self.width//2, 30+self.height*3//4))
+        self.screen.blit(instruct, (self.width//2-instruct.get_width()//2, 40+self.height//2))
+        self.screen.blit(play, (self.width//2-play.get_width()//2, -30+self.height*3//4))
+        self.screen.blit(quit, (self.width//2-quit.get_width()//2, self.height*3//4))
 
     def display_screen(self):
         self.populate_notes()
         self.screen = pygame.display.set_mode((self.width, self.height))
-        pygame.display.set_caption('Josh\'s Midi Maker')
+        pygame.display.set_caption('Josh\'s Music Maker')
         self.screen.fill(self.background)
         self.input_box()
         self.display_directions()
