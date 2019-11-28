@@ -8,7 +8,8 @@ from matplotlib import pyplot as plt
 pm_notes = {'C4': 262, 'Eb': 311, 'F': 349, 'G': 391, 'Bb': 466}
 
 #eventually have a dict of different scales to reactivley draw on display
-#scales_dict[pm_notes] = {'C4': 262, 'Eb': 311, 'F': 349, 'G': 391, 'Bb': 466}
+scales_dict = {}
+scales_dict['pm_notes'] = pm_notes
 
 
 def generate_note(frequency):
@@ -25,7 +26,7 @@ def generate_note(frequency):
         buffer.append(average)
         buffer.popleft()
 
-    #convert samples to 16 bit values then to string. Maximum value for 16bit is 32767
+    #convert samples to 16 bit values then to string
     samples = np.array(samples*32767, 'int16')
     return samples.tostring()
 
@@ -86,7 +87,7 @@ class NoteChoices:
         self.notes = {} #these are all of the notes sorted as coordinates as key and the value is the note index
 
     #draw a column of buttons
-    def draw_buttons(self, input_location_y, input_height):
+    def draw_buttons(self, input_location_y, input_height, button_r):
         for i in range(5):
             y = int(input_location_y + input_height*(5-i)/6)
             self.notes[(self.x,y)] = i
@@ -114,21 +115,30 @@ class Display(NoteChoices, NotePlayer):
         self.notes = [] #gets added with value of note button pressed (between 1 and 5)
         self.sequence = [0]*5
         self.note_player = NotePlayer()
+        self.button_r = NoteChoices().button_r
+        self.scale = 'pm_notes'
 
     NoteChoices().__init__()
+    button_r = NoteChoices().button_r
+    
+    #will allow users to change the music scale
+    def delect_scale(self, scale='pm_notes'):
+        self.scale = scale
 
+    #if the notes don't exist, this function will create a new WAV file for the note
     def populate_notes(self):
-        for name, frequency in list(pm_notes.items()):
+        for name, frequency in list(scales_dict[self.scale].items()):
             file_name = name+'.wav'
-            print(file_name)
             if not os.path.exists(file_name):
                 data = generate_note(frequency) #add options to modify the frequency and other params
                 write_wave(file_name, data)
             self.note_player.add_notes(os.path.join('scales',file_name))
 
+    #draws a circular button that the user can click on
     def note_button_generator(self, x, y, color=(255,0,0)):
-        pygame.draw.circle(self.screen, color, (x, y), (self.button_r))
+        pygame.draw.circle(self.screen, color, (x, y), (button_r))
 
+    #this creates the box that the note selections are drawn in
     def input_box(self):
         input_location_x = int(self.width/4)
         input_location_y = 20
@@ -136,27 +146,30 @@ class Display(NoteChoices, NotePlayer):
         input_height = int(self.height/2)
         input_box = pygame.Rect(input_location_x, input_location_y, input_width, input_height)
         pygame.draw.rect(self.screen, (100,100,100), input_box)
+        #pull the below functionality into its own function
         for i in range(5):
             pygame.draw.line(self.screen, (0,0,0), (input_location_x, input_location_y+int(input_height*(1+i)/6)), (input_location_x+input_width, input_location_y+int(input_height*(1+i)/6)))
         for i in range(5):
             x = int(input_location_x + input_width*(i+1)/6)
             notes = NoteChoices(x, self.screen)
             self.notes.append(notes)
-            notes.draw_buttons(input_location_y, input_height)
+            notes.draw_buttons(input_location_y, input_height, self.button_r)
 
+    #detects if the user clicked on the screen. if they have, add note to list and change color of note
     def detect_select(self, x, y):
         for i in range(len(self.notes)):
             for pos in self.notes[i].notes.keys():
-                if x in range(pos[0]-15, pos[0]+15):
-                    if y in range(pos[1]-15, pos[1]+15):
+                if x in range(pos[0]-self.button_r, pos[0]+self.button_r):
+                    if y in range(pos[1]-self.button_r, pos[1]+self.button_r):
                         self.notes[i].select_note(pos[0], pos[1])
                         note = self.notes[i].get_selected_note()
                         self.sequence[i] = note
 
+    #plays the sequence of notes that the user has input into the program
     def play_sequence(self):
-        print('hello')
         self.note_player.play_sequence(self.sequence)
 
+    #this sets theparamaters for the instruction text
     def display_directions(self):
         pygame.font.init()
         my_font = pygame.font.SysFont('Comic Sans MS', 40)
@@ -167,6 +180,7 @@ class Display(NoteChoices, NotePlayer):
         self.screen.blit(play, (self.width//2-play.get_width()//2, -30+self.height*3//4))
         self.screen.blit(quit, (self.width//2-quit.get_width()//2, self.height*3//4))
 
+    #this draws the main screen window. this needs to be called for the program to initiaize
     def display_screen(self):
         self.populate_notes()
         self.screen = pygame.display.set_mode((self.width, self.height))
