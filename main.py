@@ -1,7 +1,9 @@
 import sys, os
+from threading import Thread
 import time, random
 import wave, argparse, pygame
 import numpy as np
+from note_functions import NotePlayer, NoteChoices
 from collections import deque
 from matplotlib import pyplot as plt
 
@@ -45,65 +47,6 @@ def write_wave(file_name, data):
     file.close
 
 
-#class for playing a WAV file
-class NotePlayer:
-    def __init__(self):
-        pygame.mixer.pre_init(44100, -16, 1, 2048)
-        pygame.init()
-        self.notes = {} #dictionary of all possible notes
-
-    def add_notes(self, file_name):
-        self.notes[file_name] = pygame.mixer.Sound(file_name)
-
-    def quit_player(self):
-        for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_q:
-                    return False
-        return True
-
-    def play_sequence(self, sequence, beat=1):
-        sequence = [int(x)%len(self.notes.values()) for x in sequence]
-        i = 0
-        player = True
-        while player:
-            player = self.quit_player()
-            if i >= len(sequence):
-                i = 0
-            index = sequence[i]
-            list(self.notes.values())[index].play()
-            i +=1 
-            time.sleep(beat)
-
-#create a class of multiple note options. 
-class NoteChoices:
-    def __init__(self, x=None, screen=None):
-        self.button_r = 15
-        self.screen = screen
-        self.x = x
-        self.start_color = (255,0,0)
-        self.select_color = (0,255,0)
-        self.note = None #this is the currently selected note for the column
-        self.notes = {} #these are all of the notes sorted as coordinates as key and the value is the note index
-
-    #draw a column of buttons
-    def draw_buttons(self, input_location_y, input_height, button_r):
-        for i in range(5):
-            y = int(input_location_y + input_height*(5-i)/6)
-            self.notes[(self.x,y)] = i
-            pygame.draw.circle(self.screen, self.start_color, (self.x, y), self.button_r)
-
-    def select_note(self, x, y):
-        if self.note:
-            pygame.draw.circle(self.screen, self.start_color, self.note, self.button_r)
-        self.note = (x,y)
-        pygame.draw.circle(self.screen, self.select_color, self.note, self.button_r)
-
-    def get_selected_note(self):
-        #returns index i
-        return self.notes[self.note]
-
-
 class Display(NoteChoices, NotePlayer):
     pygame.init()
     def __init__(self):
@@ -111,12 +54,14 @@ class Display(NoteChoices, NotePlayer):
         self.height = 500
         self.background = (255, 255, 255)
         self.screen = None
+        self.num_notes = 6 #number of notes the player will go through
         self.note_buttons_positions = [] #keeps a list of all button positions for reference
         self.notes = [] #gets added with value of note button pressed (between 1 and 5)
-        self.sequence = [0]*5
-        self.note_player = NotePlayer()
+        self.sequence = [0]*self.num_notes
+        self.note_player = NotePlayer(.5)
         self.button_r = NoteChoices().button_r
         self.scale = 'pm_notes'
+
 
     NoteChoices().__init__()
     button_r = NoteChoices().button_r
@@ -138,8 +83,19 @@ class Display(NoteChoices, NotePlayer):
     def note_button_generator(self, x, y, color=(255,0,0)):
         pygame.draw.circle(self.screen, color, (x, y), (button_r))
 
+    #draws an opaque tracking bar that goes over the notes as they're played
+    def tracking_bar(self, width, height, initial_x, initial_y):
+        width = width//self.num_notes
+        yellow = (255,255,0)
+        for i in range(self.num_notes):
+            pygame.draw.rect(self.screen, yellow, (initial_x+width*i, initial_y, width, height))
+            time.sleep(1)
+
+
     #this creates the box that the note selections are drawn in
     def input_box(self):
+        num_notes = self.num_notes
+        notes_in_scale = 5
         input_location_x = int(self.width/4)
         input_location_y = 20
         input_width = int(self.width/2)
@@ -147,10 +103,11 @@ class Display(NoteChoices, NotePlayer):
         input_box = pygame.Rect(input_location_x, input_location_y, input_width, input_height)
         pygame.draw.rect(self.screen, (100,100,100), input_box)
         #pull the below functionality into its own function
-        for i in range(5):
-            pygame.draw.line(self.screen, (0,0,0), (input_location_x, input_location_y+int(input_height*(1+i)/6)), (input_location_x+input_width, input_location_y+int(input_height*(1+i)/6)))
-        for i in range(5):
-            x = int(input_location_x + input_width*(i+1)/6)
+        #this draws the horizontal lines onto the screen
+        for i in range(notes_in_scale):
+            pygame.draw.line(self.screen, (0,0,0), (input_location_x, input_location_y+int(input_height*(1+i)/(notes_in_scale+1))), (input_location_x+input_width, input_location_y+int(input_height*(1+i)/(notes_in_scale+1))))
+        for i in range(num_notes):
+            x = int(input_location_x + input_width*(i+1)/(num_notes+1))
             notes = NoteChoices(x, self.screen)
             self.notes.append(notes)
             notes.draw_buttons(input_location_y, input_height, self.button_r)
@@ -175,10 +132,12 @@ class Display(NoteChoices, NotePlayer):
         my_font = pygame.font.SysFont('Comic Sans MS', 40)
         instruct = my_font.render('Select circles to choose note at that beat', False, (0,0,0))
         play = my_font.render('Press \'p\' to play tone', False, (0,0,0))
+        add_note = my_font.render('Press \'a\' to add a sqeuence', False, (0,0,0)) 
         quit = my_font.render('Press \'q\' to stop playing tone', False, (0,0,0)) 
         self.screen.blit(instruct, (self.width//2-instruct.get_width()//2, 40+self.height//2))
         self.screen.blit(play, (self.width//2-play.get_width()//2, -30+self.height*3//4))
-        self.screen.blit(quit, (self.width//2-quit.get_width()//2, self.height*3//4))
+        self.screen.blit(add_note, (self.width//2-quit.get_width()//2, self.height*3//4))
+        self.screen.blit(quit, (self.width//2-quit.get_width()//2, 30+self.height*3//4))
 
     #this draws the main screen window. this needs to be called for the program to initiaize
     def display_screen(self):
@@ -188,6 +147,8 @@ class Display(NoteChoices, NotePlayer):
         self.screen.fill(self.background)
         self.input_box()
         self.display_directions()
+        stop_threads = False
+        threads = []
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -196,8 +157,19 @@ class Display(NoteChoices, NotePlayer):
                     mouse_location = pygame.mouse.get_pos()
                     self.detect_select(mouse_location[0], mouse_location[1])
                 if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_a:
+                        threads.append(Thread(target = (lambda: self.play_sequence())))
                     if event.key == pygame.K_p:
-                        self.play_sequence()
+                        try:
+                            for thread in threads:
+                                thread.start()
+                        except:
+                            pass
+                    if event.key == pygame.K_q:
+                        for thread in threads:
+                            thread.join()
+                            threads.remove(thread)
+
             pygame.display.update()
 
 
