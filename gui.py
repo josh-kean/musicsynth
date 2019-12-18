@@ -8,7 +8,8 @@ class Display:
         self.height = 750
         self.window1 = tk.Tk()
         self.lines = []
-        self.buttons = []
+        self.button_locations = []
+        self.buttons = [] #stores buttons after they're created in the program
         self.num_buttons = num_buttons
         self.notes = [0]*num_buttons
         self.sequences = []
@@ -23,22 +24,33 @@ class Display:
         print('functionality to be added')
 
     def add_sequence(self):
+        i = len(self.sequences)
+        self.sscreen.insert(i, 'sequence '+str(i))
         self.sequences.append(self.notes)
 
     def clear_sequences(self):
         self.sequences = []
 
     def remove_sequence(self):
-        print('functionality to be added')
+        i = self.sscreen.curselection()[0]
+        print(i)
+        del self.sequences[int(i)]
+        self.sscreen.delete(i)
 
+    #this is the main screen where users can add/ change notes
     def music_note_screen(self):
         self.mnw_width = self.width//2
         self.mnw_height = self.height//2
         self.mnw = tk.Canvas(self.window1, height=self.mnw_height, width = self.mnw_width, bg="black") #mnw stands for music note window
         self.mnw.place(x=self.width//4, y=10)
 
+    #this screen is on the left of the window, which shows the sequences the user has added
     def sequence_screen(self):
-        self.
+        self.sscreen_width = self.width//4
+        self.sscreen_height = self.height//2
+        self.sscreen = tk.Listbox(self.window1, height=10)
+        self.sscreen.place(x=10, y=10)
+
 
     def control_buttons(self):
         add_button = tk.Button(self.window1, text= 'add current sequence', command=self.add_sequence)
@@ -52,13 +64,23 @@ class Display:
 
     def update_notes(self, line, note):
         self.notes[line] = abs(self.num_buttons-note)
-        print(line, note)
+
+    def refresh_buttons(self, i):
+        for button in self.buttons:
+            if button[1] == i:
+                self.mnw.itemconfig(button[0], fill='red')
+
+    def combine_button(self, line, note, button):
+        self.update_notes(line, note)
+        self.refresh_buttons(line)
+        self.mnw.itemconfig(button, fill='green')
 
     def draw_button(self, x1, y1, x2, y2, r, line, note):
         x = x1+r
         y = y1+r
         new_button = self.mnw.create_oval(x1, y1, x2, y2, fill='red')
-        self.mnw.tag_bind(new_button, '<Button-1>', lambda event: self.update_notes(line, note))
+        self.buttons.append([new_button, line, note]) #keeps buttons in relation to line and buttons and notes
+        self.mnw.tag_bind(new_button, '<Button-1>', lambda event: self.combine_button(line, note, new_button))
             
     def draw_mnw_lines(self):
         r = 10
@@ -70,8 +92,8 @@ class Display:
             x = line[0]
             for b in range(self.num_buttons):
                 h = self.mnw_height*(b+1)//(self.num_buttons+1)
-                self.buttons.append([x-r, h-r, x+r, h+r, self.lines.index(line), b])
-        for b in self.buttons:
+                self.button_locations.append([x-r, h-r, x+r, h+r, self.lines.index(line), b])
+        for b in self.button_locations:
             self.draw_button(b[0], b[1], b[2], b[3], r, b[4], b[5])
 
 
@@ -79,6 +101,7 @@ class Display:
         self.screen_settings()
         self.control_buttons()
         self.music_note_screen()
+        self.sequence_screen()
         self.draw_mnw_lines()
         self.window1.mainloop()
 
