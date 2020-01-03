@@ -1,5 +1,6 @@
 import sys
 import tkinter as tk
+from note_functions import NotePlayer, NoteGenerator
 
 class Display:
     #initial paramaters for display screen
@@ -21,6 +22,9 @@ class Display:
         self.window1.resizable(0,0) #disallows user to resize window
 
     def play_sequence(self):
+        for sequence in self.sequences:
+            NotePlayer().play_sequence(sequence)
+            print(sequence)
         print('functionality to be added')
 
     def add_sequence(self):
@@ -106,6 +110,7 @@ class Display:
         self.window1.mainloop()
 
 
+NotePlayer().populate_notes()
 Display().display_screen()
 
         
