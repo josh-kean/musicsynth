@@ -12,7 +12,7 @@ class Display:
         self.button_locations = []
         self.buttons = [] #stores buttons after they're created in the program
         self.num_buttons = num_buttons
-        self.notes = [0]*num_buttons
+        self.notes = [0]*num_buttons #records what notes have been selected. Defaults to 00000
         self.sequences = []
 
     def screen_settings(self):
@@ -24,8 +24,6 @@ class Display:
     def play_sequence(self):
         for sequence in self.sequences:
             NotePlayer().play_sequence(sequence)
-            print(sequence)
-        print('functionality to be added')
 
     def add_sequence(self):
         i = len(self.sequences)
@@ -66,20 +64,21 @@ class Display:
         delete_button.place(x=3*self.width//5, y= self.height*2//3)
         clear_button.place(x=4*self.width//5, y= self.height*2//3)
 
-    def update_notes(self, line, note):
-        self.notes[line] = abs(self.num_buttons-note)
+    def update_notes(self, line, note): #updates the notes array with the currently selected note
+        self.notes[line] = abs(self.num_buttons-note) 
+        print(self.notes)
 
     def refresh_buttons(self, i):
         for button in self.buttons:
             if button[1] == i:
                 self.mnw.itemconfig(button[0], fill='red')
 
-    def combine_button(self, line, note, button):
+    def combine_button(self, line, note, button): #update notes is in this function, all three events happen when note is clicked
         self.update_notes(line, note)
         self.refresh_buttons(line)
         self.mnw.itemconfig(button, fill='green')
 
-    def draw_button(self, x1, y1, x2, y2, r, line, note):
+    def draw_button(self, x1, y1, x2, y2, r, line, note): #draws each button
         x = x1+r
         y = y1+r
         new_button = self.mnw.create_oval(x1, y1, x2, y2, fill='red')
@@ -88,13 +87,13 @@ class Display:
             
     def draw_mnw_lines(self):
         r = 10
-        for x in range(6):
+        for x in range(6): #creates (x0,y0) and (x1,y1) positions for each vertical line of notes
             x_position = int(((x+1)/7)*self.mnw_width)
             self.lines.append([x_position,0, x_position, self.mnw_height]) #in format x1, y1, x2, y2
-        for line in self.lines:
+        for line in self.lines: #draws each line and fills in with red color
             self.mnw.create_line(line[0], line[1], line[2], line[3], fill="red")
             x = line[0]
-            for b in range(self.num_buttons):
+            for b in range(self.num_buttons): #creates each button location
                 h = self.mnw_height*(b+1)//(self.num_buttons+1)
                 self.button_locations.append([x-r, h-r, x+r, h+r, self.lines.index(line), b])
         for b in self.button_locations:
@@ -110,7 +109,7 @@ class Display:
         self.window1.mainloop()
 
 
-NotePlayer().populate_notes()
+#NotePlayer().populate_notes()
 Display().display_screen()
 
         

@@ -124,7 +124,7 @@ class Display(NoteChoices, NotePlayer):
 
     #plays the sequence of notes that the user has input into the program
     def play_sequence(self):
-        self.note_player.play_sequence(self.sequence)
+        self.note_player.play_sequence(self.sequence) #self.sequence is a list of numbers between 0 and 5 which tells note_player what to play
 
     #this sets theparamaters for the instruction text
     def display_directions(self):

@@ -51,11 +51,12 @@ class NotePlayer:
         self.beat = beat
         self.pm_notes = {'C4': 262, 'Eb': 311, 'F': 349, 'G': 391, 'Bb': 466}
         self.scales = {'pm_notes': self.pm_notes}
+        self.notes = {}
         self.note_gen = NoteGenerator()
 
 
     def add_notes(self, file_name):
-        self.scales['pm_notes'][file_name] = pygame.mixer.Sound(file_name)
+        self.notes[file_name] = pygame.mixer.Sound(file_name)
 
     def quit_player(self):
         for event in pygame.event.get():
@@ -66,7 +67,7 @@ class NotePlayer:
 
     #if the notes don't exist, this function will create a new WAV file for the note
     def populate_notes(self):
-        for name, frequency in list(self.scales.items()):
+        for name, frequency in list(self.scales['pm_notes'].items()):
             file_name = name+'.wav'
             if not os.path.exists(file_name):
                 data = self.note_gen.generate_note(frequency) #add options to modify the frequency and other params
@@ -74,15 +75,21 @@ class NotePlayer:
             self.add_notes(os.path.join('scales',file_name))
 
 
-    def play_sequence(self, sequence):
-        sequence = [int(x)%len(self.scales['pm_notes'].values()) for x in sequence]
+    def play_sequence(self, sequence): #takes in a sequence of integers and plays the corresponding notes
+        self.populate_notes()
+        #sequence = [int(x)%len(self.scales['pm_notes'].values()) for x in sequence]
+        #want to make a list of file names, self.notes[key=filename, value = wav file]
+        #create a list of keys in self.notes
+        sequence = [list(self.notes.keys())[x] for x in sequence]
         i = 0
         player = True
         while player:
             if i >= len(sequence):
                 i = 0
+            #want to call file 'scales/C4' etc.
             index = sequence[i]
-            list(self.scales['pm_notes'].values())[index].play()
+            #list(self.notes.values())[index].play()
+            self.notes[index].play()
             i +=1 
             time.sleep(self.beat)
             player = self.quit_player()
