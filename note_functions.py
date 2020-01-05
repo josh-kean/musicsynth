@@ -12,7 +12,7 @@ class NoteGenerator:
     def generate_note(self, frequency=1):
         n_samples = 44100
         sample_rate = 44100
-        N = int(sample_rate/1) #change 1 to frequence once bug of frequency is dict is worked out
+        N = int(sample_rate/frequency) #change 1 to frequence once bug of frequency is dict is worked out
         #generting a ring bugger
         buffer = deque([random.random() - .5 for i in range(N)])
         #initialize a samples buffer
