@@ -1,6 +1,7 @@
 import sys
 import tkinter as tk
 from note_functions import NotePlayer, NoteGenerator
+from threading import Thread as t
 
 class Display:
     #initial paramaters for display screen
@@ -14,6 +15,7 @@ class Display:
         self.num_buttons = num_buttons
         self.notes = [0]*num_buttons #records what notes have been selected. Defaults to 00000
         self.sequences = []
+        self.threads = []
 
     def screen_settings(self):
         self.window1.title('make your own kind of music') #title of project
@@ -22,8 +24,12 @@ class Display:
         self.window1.resizable(0,0) #disallows user to resize window
 
     def play_sequence(self):
+        threads = []
         for sequence in self.sequences:
-            NotePlayer().play_sequence(sequence)
+            #create a list of threads, and initialize all at same time
+            self.threads.append(t(target = (lambda: NotePlayer().play_sequence(sequence))))
+        for thread in self.threads:
+            thread.start()
 
     def add_sequence(self):
         i = len(self.sequences)
@@ -32,6 +38,7 @@ class Display:
 
     def clear_sequences(self):
         self.sequences = []
+        self.sscreen.delete(0, tk.END)
 
     def remove_sequence(self):
         i = self.sscreen.curselection()[0]
