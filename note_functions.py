@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, shutil
 import time, random
 import wave, argparse, pygame
 import numpy as np
@@ -27,10 +27,10 @@ class NoteGenerator:
         samples = np.array(samples*32767, 'int16')
         return samples.tostring()
 
-    def write_wave(self, file_name, data):
-        if os.path.isdir(os.path.join('scales')) == False:
-            os.mkdir('scales')
-        file = wave.open(os.path.join('scales',file_name), 'wb')
+    def write_wave(self, file_name, data, dirname='scales'):
+        if os.path.isdir(os.path.join(dirname)) == False:
+            os.mkdir(dirname)
+        file = wave.open(os.path.join(dirname,file_name), 'wb')
         #WAV file parameters
         n_channels = 1
         sample_width = 2
@@ -49,14 +49,16 @@ class NotePlayer:
         pygame.mixer.pre_init(44100, -16, 1, 2048)
         pygame.init()
         self.beat = beat
-        self.pm_notes = {'C4': 262, 'Eb': 311, 'F': 349, 'G': 391, 'Bb': 466}
+        self.pm_notes = {0: ['X', 1], 1:['C4', 262],
+                        2: ['Eb', 311], 3: ['F', 349],
+                        4: ['G', 391], 5: ['Bb', 466]}
         self.scales = {'pm_notes': self.pm_notes}
         self.notes = {}
         self.note_gen = NoteGenerator()
 
 
     def add_notes(self, file_name):
-        self.notes[file_name] = pygame.mixer.Sound(file_name)
+        self.notes[file_name] = pygame.mixer.Sound(file_name) #adds a wav object to the dictionary
 
     def quit_player(self):
         for event in pygame.event.get():
@@ -74,25 +76,34 @@ class NotePlayer:
                 self.note_gen.write_wave(file_name, data)
             self.add_notes(os.path.join('scales',file_name))
 
+    def create_notes(self, sequence, i): #creates notes and saves in a directory for each sequence
+        notes = []
+        #creates a new directory to store all generated note information in
+        if os.path.isdir(os.path.join(os.getcwd(),'sequence'+str(i))):
+            shutil.rmtree(os.path.join(os.getcwd(),'sequence'+str(i)))
+        os.mkdir(os.path.join(os.getcwd(),'sequence'+str(i)))
 
-    def play_sequence(self, sequence): #takes in a sequence of integers and plays the corresponding notes
-        self.populate_notes()
-        #sequence = [int(x)%len(self.scales['pm_notes'].values()) for x in sequence]
-        #want to make a list of file names, self.notes[key=filename, value = wav file]
-        #create a list of keys in self.notes
-        sequence = [list(self.notes.keys())[x] for x in sequence]
+        for j in sequence:
+            name = self.pm_notes[j][0]+'.wav' #create the actual file name
+            freq = self.pm_notes[j][1]
+            data = self.note_gen.generate_note(freq) #create note paramaters
+            self.note_gen.write_wave(name, data, 'sequence'+str(i)) #create the actual note information
+            if j > 0:
+                notes.append(pygame.mixer.Sound(os.path.join('sequence'+str(i), name))) #create a list of notes
+            else:
+                notes.append('skip')
+        return notes #returns a list of note objects
+
+    def play_sequence(self, notes):
         i = 0
         player = True
         while player:
-            if i >= len(sequence):
+            if i >=len(notes):
                 i = 0
-            #want to call file 'scales/C4' etc.
-            index = sequence[i]
-            #list(self.notes.values())[index].play()
-            self.notes[index].play()
-            i +=1 
-            time.sleep(self.beat)
-            player = self.quit_player()
+            if notes[i] != 'skip':
+                notes[i].play()
+            i +=1
+            time.sleep(1)
 
 #create a class of multiple note options. 
 class NoteChoices:

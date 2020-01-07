@@ -16,6 +16,7 @@ class Display:
         self.notes = [0]*num_buttons #records what notes have been selected. Defaults to 00000
         self.sequences = []
         self.threads = []
+        self.note_objects = []
 
     def screen_settings(self):
         self.window1.title('make your own kind of music') #title of project
@@ -25,16 +26,22 @@ class Display:
 
     def play_sequence(self):
         threads = []
-        for sequence in self.sequences:
+        for notes in self.note_objects:
             #create a list of threads, and initialize all at same time
-            self.threads.append(t(target = (lambda: NotePlayer().play_sequence(sequence))))
+            self.threads.append(t(target = (lambda: NotePlayer().play_sequence(notes))))
         for thread in self.threads:
             thread.start()
+
+    def stop_playing(self):
+        for thread in self.threads:
+            thread.join()
 
     def add_sequence(self):
         i = len(self.sequences)
         self.sscreen.insert(i, 'sequence '+str(i))
-        self.sequences.append(self.notes)
+        self.sequences.append(self.notes) #probably replace self.notes with a list of file names and locations
+        notes = NotePlayer().create_notes(self.notes, i) #returns list of note objects
+        self.note_objects.append(notes)
 
     def clear_sequences(self):
         self.sequences = []
